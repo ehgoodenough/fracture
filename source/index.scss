@@ -49,13 +49,14 @@ html {
     color: #F4F8F0;
     color: #DEB74A;
     padding: 0.25em;
-    font-family: rogue-icons;
     
     span {
         width: 1em;
         height: 1em;
+        display: inline-block;
+        
         line-height: 1em;
         text-align: right;
-        display: inline-block;
+        font-family: rogue-icons;
     }
 }

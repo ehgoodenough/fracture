@@ -7,7 +7,7 @@ var Shortid = require("shortid")
 var Loop = require("./scripts/Loop")
 var Input = require("./scripts/Input")
 
-var WIDTH = 9, HEIGHT = 9
+var SIZE = 9
 
 class Position {
     constructor(protoposition = {}) {
@@ -17,10 +17,11 @@ class Position {
 }
 
 class Entity {
-    constructor(protoentity = new Object()) {
+    constructor(protoentity = {}) {
         this.position = new Position(protoentity.position)
-        this.color = protoentity.color || "#CC0000"
+        this.color = protoentity.color || "#C00"
         this.symbol = protoentity.symbol || "~"
+        this.health = protoentity.health || 1
         this.id = Shortid.generate()
     }
     examine() {
@@ -30,16 +31,21 @@ class Entity {
 
 class Hero extends Entity {
     constructor(protohero) {
-        super(protohero)
-        this.symbol = "@"
-        this.color = "#DEB74A"
-        this.name = protohero.name || "Bob"
-        window.hero = this
-        
-        this.health = 3
+        super({
+            health: 3,
+            symbol: "@",
+            color: "#DEB74A",
+            name: "Bob",
+            position: {
+                x: Math.floor(SIZE / 2),
+                y: Math.floor(SIZE / 2) + 1
+            }
+        })
         
         this.direction = -1
         this.prevposition = new Position(this.position)
+        
+        window.hero = this
     }
     update(tick) {
         if(Input.isJustDown("W")
@@ -66,9 +72,9 @@ class Hero extends Entity {
         this.direction = movement.x > 0 ? +1 : this.direction
 
         if(this.position.x + movement.x < 0
-        || this.position.x + movement.x >= WIDTH
+        || this.position.x + movement.x >= SIZE
         || this.position.y + movement.y < 0
-        || this.position.y + movement.y >= HEIGHT) {
+        || this.position.y + movement.y >= SIZE) {
             movement.x = 0
             movement.y = 0
         }
@@ -108,22 +114,40 @@ class Hero extends Entity {
     }
 }
 
-class Monster extends Entity {
-    isAttacked() {
-        this.health -= 1
-        if(this.health <= 0) {
-            game.splice(game.indexOf(this), 1)
-        }
+var red = "#A52F22"
+var blue = "#00688B"
+var symbols = "OPGbdegk"
+
+var protomonsters = {
+    "red gel": {
+        "name": "Red Gel",
+        "color": red,
+        "symbol": "g",
+        "health": 1,
     }
 }
 
-class Goo extends Monster {
-    constructor(protogoo) {
-        super(protogoo)
-        this.color = "#A52F22"
+class Monster extends Entity {
+    constructor(protomonster = new Object()) {
+        for(var key in protomonsters["red gel"]) {
+            protomonster[key] = protomonsters["red gel"][key]
+        }
+        if(!protomonster.position) {
+            if(Math.random() < 0.5) {
+                protomonster.position = {
+                    x: Math.floor(Math.random() * SIZE),
+                    y: Math.random() < 0.5 ? -1 : SIZE
+                }
+            } else {
+                protomonster.position = {
+                    x: Math.random() < 0.5 ? -1 : SIZE,
+                    y: Math.floor(Math.random() * SIZE)
+                }
+            }
+        }
+        console.log(protomonster.position)
+        super(protomonster)
         this.isPrepared = Math.random() < 0.5
-        this.symbol = this.isPrepared ? "G" : "g"
-        this.health = 1
     }
     op() {
         if(this.isPrepared == false) {
@@ -137,17 +161,11 @@ class Goo extends Monster {
             // whichever vector has a longer magnitude.
             if(Math.abs(this.position.y - ((hero.position.y + hero.prevposition.y) / 2))
             >= Math.abs(this.position.x - ((hero.position.x + hero.prevposition.x) / 2))) {
-                if(this.position.y > hero.position.y) {
-                    this.move({y: -1})
-                } else if(this.position.y < hero.position.y) {
-                    this.move({y: +1})
-                }
+                if(this.position.y > hero.position.y) {this.move({y: -1})}
+                else if(this.position.y < hero.position.y) {this.move({y: +1})}
             } else {
-                if(this.position.x > hero.position.x) {
-                    this.move({x: -1})
-                } else if(this.position.x < hero.position.x) {
-                    this.move({x: +1})
-                }
+                if(this.position.x > hero.position.x) {this.move({x: -1})}
+                else if(this.position.x < hero.position.x) {this.move({x: +1})}
             }
         }
     }
@@ -173,26 +191,21 @@ class Goo extends Monster {
         this.position.x += movement.x
         this.position.y += movement.y
     }
-}
-
-class StrongGoo extends Goo {
-    constructor(protogoo) {
-        super(protogoo)
-        this.color = "#75000C"
-        this.health *= 2
+    isAttacked() {
+        this.health -= 1
+        if(this.health <= 0) {
+            game.splice(game.indexOf(this), 1)
+            game.push(new Monster())
+        }
     }
 }
 
 window.game = [
-    new Hero({
-        position: new Position({x: 2, y: 2})
-    }),
-    new Goo({
-        position: new Position({x: 4, y: 4})
-    }),
-    new StrongGoo({
-        position: new Position({x: 5, y: 4})
-    })
+    new Hero(),
+    new Monster(),
+    new Monster(),
+    new Monster(),
+    new Monster(),
 ]
 
 class GameComponent extends React.Component {
@@ -264,3 +277,4 @@ ReactDOM.render(<GameComponent/>, document.getElementById("mount"))
 //////////// TO DO ////////////
 //////////////////////////////
 // Listen for Input.isStillDown()
+// Monsters can spawn on monsters
