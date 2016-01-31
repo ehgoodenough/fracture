@@ -1,0 +1,61 @@
+@import "./styles/AspectRatio.scss";
+@import "./styles/Font.scss";
+
+@include font(tiny)
+@include font(rogue-icons)
+@include font(rogue-monsters)
+
+* {
+    margin: 0;
+    padding: 0;
+    cursor: default;
+    user-select: none;
+    box-sizing: border-box;
+    image-rendering: pixelated;
+}
+
+html {
+    color: #EEE;
+    background-color: #111;
+}
+
+#frame {
+    color: #111;
+    background-color: #222;
+    @include aspect-ratio(9, 9);
+}
+
+.entity {
+    width: 1em;
+    height: 1em;
+    line-height: 1em;
+    text-align: right;
+    position: absolute;
+    
+    font-family: rogue-monsters;
+    
+    transition-duration: 0.1s;
+    transition-property: top left;
+}
+
+.entity:hover {
+    outline-color: #EEE;
+    outline-style: dashed;
+    outline-width: 0.0625em;
+}
+
+#menu {
+    float: right;
+    color: #F4F8F0;
+    color: #DEB74A;
+    padding: 0.25em;
+    font-family: rogue-icons;
+    
+    span {
+        width: 1em;
+        height: 1em;
+        line-height: 1em;
+        text-align: right;
+        display: inline-block;
+    }
+}
