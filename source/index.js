@@ -1,9 +1,9 @@
 //http://www.colourpod.com/post/138222494225/where-are-all-the-scientists-now-submitted-by
 //http://www.roguebasin.com/index.php?title=7DRL_Challenge_2016
 
-var Firebase = require("firebase")
 var React = require("react")
 var ReactDOM = require("react-dom")
+var Firebase = require("firebase")
 var Shortid = require("shortid")
 var Loop = require("./scripts/Loop")
 var Input = require("./scripts/Input")
@@ -37,7 +37,6 @@ class Hero extends Entity {
             health: 3,
             symbol: "@",
             color: "#DEB74A",
-            name: "Bob",
             position: {
                 x: Math.floor(SIZE / 2),
                 y: Math.floor(SIZE / 2) + 1
@@ -86,8 +85,10 @@ class Hero extends Entity {
             if(entity != this) {
                 if(this.position.x + movement.x == entity.position.x
                 && this.position.y + movement.y == entity.position.y) {
-                    if(!!entity.isAttacked) {
-                        entity.isAttacked()
+                    if(entity instanceof Monster) {
+                        if(!!entity.isAttacked) {
+                            entity.isAttacked()
+                        }
                     }
                     movement.x = 0
                     movement.y = 0
@@ -114,16 +115,17 @@ class Hero extends Entity {
             game.splice(game.indexOf(this), 1)
             window.setTimeout(() => {
                 if(this.score != 0) {
-                    window.name = window.prompt(
+                    _game.name = window.prompt(
                         "You died! Submit your score:",
-                        window.name || "Bob"
+                        _game.name || "Bob"
                     ) || new String()
-                    window.name = window.name.trim()
-                    if(window.name != new String()) {
+                    _game.name = _game.name.trim()
+                    if(_game.name != new String()) {
                         try {
                             _game.scores.add({
-                                name: window.name,
-                                score: this.score
+                                name: _game.name,
+                                score: this.score,
+                                date: new Date().toString()
                             })
                         } catch(error) {
                             console.log(error)
@@ -133,9 +135,28 @@ class Hero extends Entity {
                 window.alert("Top scores:\n" + _game.scores.get().map((entry) => {
                     return entry.name + ": " + entry.score
                 }).join("\n"))
-                _game.reset()
+                _game.start()
             }, 100)
         }
+    }
+}
+
+class Altar extends Entity {
+    constructor(protohero) {
+        super({
+            symbol: "~",
+            color: "#F4F8F0",
+            position: {
+                x: Math.floor(SIZE / 2),
+                y: Math.floor(SIZE / 2)
+            }
+        })
+        
+        this.isIcon = true
+        window.altar = this
+    }
+    isNotActive() {
+        this.isActive = false
     }
 }
 
@@ -218,6 +239,14 @@ class Monster extends Entity {
     isAttacked() {
         this.health -= 1
         if(this.health <= 0) {
+            if(Math.abs(this.position.x - altar.position.x) <= 1
+            && Math.abs(this.position.y - altar.position.y) <= 1) {
+                hero.score += 2
+                altar.isActive = true
+                window.setTimeout(() => {
+                    altar.isActive = false
+                }, 250)
+            }
             game.splice(game.indexOf(this), 1)
             game.push(new Monster())
             hero.score += 1
@@ -225,71 +254,73 @@ class Monster extends Entity {
     }
 }
 
-class Leaderboard {
+class Scores {
     constructor(firebaseURL) {
         this.firebase = new Firebase(firebaseURL)
         this.firebase.orderByChild("score").limitToLast(5).on("value", (value) => {
-            this.scores = value.val()
+            this.entries = value.val()
         })
     }
     add(data) {
         this.firebase.push(data).setPriority(data.score)
     }
     get() {
-        return Object.keys(this.scores).map((key) => {
-            return this.scores[key]
+        return Object.keys(this.entries).map((key) => {
+            return this.entries[key]
         }).reverse()
     }
 }
 
 var _game = new Object()
-_game.scores = new Leaderboard("https://yeahgoodenough.firebaseio.com/fracture")
-_game.reset = function() {
+_game.scores = new Scores("https://yeahgoodenough.firebaseio.com/fracture")
+_game.name = "Bob"
+_game.splashed = false
+if(STAGE == "DEVELOPMENT") {
+    _game.splashed = true
+}
+_game.start = function() {
     window.game = [
         new Hero(),
         new Monster(),
         new Monster(),
         new Monster(),
         new Monster(),
+        new Altar()
     ]
 }
-
-window.name = "Bob"
-window.splashed = false
-if(STAGE == "DEVELOPMENT") {
-    window.splashed = true
-}
-_game.reset()
+window.game = []
+_game.start()
 
 class GameComponent extends React.Component {
     render() {
-        if(splashed) {
-            return (
-                <div id="frame">
-                    {game.map((entity) => {
-                        if(entity instanceof Entity) {
-                            return (
-                                <EntityComponent
-                                    key={entity.id}
-                                    entity={entity}/>
-                            )
-                        }
-                    })}
-                    <MenuComponent hero={hero}/>
-                </div>
-            )
-        } else {
-            return (
-                <div id="frame">
-                    <div id="splash"/>
-                </div>
-            )
-        }
+        return (
+            <div id="frame">
+                <div id="splash" style={{
+                    opacity: _game.splashed ? 0 : 1
+                }}/>
+                {game.map((entity) => {
+                    if(entity instanceof Entity) {
+                        return (
+                            <EntityComponent
+                                key={entity.id}
+                                entity={entity}/>
+                        )
+                    }
+                })}
+                <MenuComponent hero={window.hero}/>
+            </div>
+        )
     }
     componentDidMount() {
+        window.setTimeout(() => {
+            _game.splashed = true
+        }, 1000)
+        
         var loop = new Loop((tick) => {
-            hero.update(tick)
-            this.forceUpdate()
+            if(_game.splashed == true) {
+                hero.update(tick)
+                this.forceUpdate()
+            }
         })
     }
 }
@@ -298,16 +329,20 @@ class GameComponent extends React.Component {
 class EntityComponent extends React.Component {
     render() {
         return (
-            <div className="entity" style={this.style()}>
+            <div className={this.className()} style={this.style()}>
                 {this.props.entity.symbol || "~"}
             </div>
         )
+    }
+    className() {
+        return "entity" + (this.props.entity.isActive ? " isActive" : "")
     }
     style() {
         return {
             "color": this.props.entity.color || "#C00",
             "top": Math.floor(this.props.entity.position.y) + "em",
             "left": Math.floor(this.props.entity.position.x) + "em",
+            "fontFamily": this.props.entity.isIcon ? "rogue-icons" : "",
             "transform": [
                 //`scaleX(${this.props.entity.direction * -1 || 1})`
             ].join(",")
@@ -349,7 +384,7 @@ class MenuComponent extends React.Component {
         return (
             <div id="message">
                 <span>
-                    {hero.message || MESSAGE}
+                    {_game.message || MESSAGE}
                 </span>
             </div>
         )
@@ -362,4 +397,4 @@ ReactDOM.render(<GameComponent/>, document.getElementById("mount"))
 //////////// TO DO ////////////
 //////////////////////////////
 // Listen for Input.isStillDown()
-// Monsters can spawn on monsters
+// Monsters shouldn't spawn on monsters

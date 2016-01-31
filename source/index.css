@@ -26,8 +26,20 @@ html {
 }
 
 #splash {
-    width: 100%;
-    height: 100%;
+    top: 0em;
+    left: 0em;
+    right: 0em;
+    bottom: 0em;
+    z-index: 100;
+    position: absolute;
+    
+    background-size: auto 100%;
+    background-position: center;
+    background-image: url("./images/splash-medium.jpg");
+    
+    opacity: 1;
+    transition-duration: 1s;
+    transition-property: opacity;
 }
 
 .entity {
@@ -95,4 +107,19 @@ html {
             vertical-align: text-bottom;
         }
     }
+}
+
+
+
+
+@keyframes wobble  {
+  0%  { transform: rotate(0deg); }
+  20%  { transform: rotate(+8deg); }
+  50%  { transform: rotate(-8deg); }
+  100%  { transform: rotate(0deg); }
+}
+
+.entity.isActive {
+    color: #A52F22 !important;
+    animation: wobble 0.1s infinite;
 }
