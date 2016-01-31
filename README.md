@@ -2,6 +2,6 @@
 
 A game for Global Game Jam 2016.
 
-![Fracture](http://imgur.com/0n4XC7o)
+![Fracture](http://imgur.com/0n4XC7o.png)
 
 To get started, run `npm install` then `node build server`.
