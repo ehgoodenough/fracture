@@ -25,6 +25,11 @@ html {
     @include aspect-ratio(9, 9);
 }
 
+#splash {
+    width: 100%;
+    height: 100%;
+}
+
 .entity {
     width: 1em;
     height: 1em;
@@ -45,18 +50,49 @@ html {
 }
 
 #menu {
-    float: right;
-    color: #F4F8F0;
     color: #DEB74A;
-    padding: 0.25em;
     
-    span {
-        width: 1em;
-        height: 1em;
-        display: inline-block;
+    #hearts {
         
-        line-height: 1em;
-        text-align: right;
-        font-family: rogue-icons;
+        top: 0.25em;
+        right: 0.25em;
+        position: absolute;
+        
+        span {
+            width: 1em;
+            height: 1em;
+            display: inline-block;
+            
+            line-height: 1em;
+            text-align: right;
+            font-family: rogue-icons;
+        }
+    }
+    
+    #score {
+        top: 0.25em;
+        left: 0.5em;
+        position: absolute;
+        
+        span {
+            font-size: 1.4em;
+            font-family: tiny;
+        }
+    }
+    
+    #message {
+        left: 0.5em;
+        right: 0.5em;
+        bottom: 0.5em;
+        position: absolute;
+        
+        span {
+            display: block;
+            font-size: 0.45em;
+            font-family: tiny;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: text-bottom;
+        }
     }
 }

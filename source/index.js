@@ -1,6 +1,7 @@
 //http://www.colourpod.com/post/138222494225/where-are-all-the-scientists-now-submitted-by
 //http://www.roguebasin.com/index.php?title=7DRL_Challenge_2016
 
+var Firebase = require("firebase")
 var React = require("react")
 var ReactDOM = require("react-dom")
 var Shortid = require("shortid")
@@ -8,6 +9,7 @@ var Loop = require("./scripts/Loop")
 var Input = require("./scripts/Input")
 
 var SIZE = 9
+var MESSAGE = "Sacrifice all the monsters!"
 
 class Position {
     constructor(protoposition = {}) {
@@ -42,6 +44,7 @@ class Hero extends Entity {
             }
         })
         
+        this.score = 0
         this.direction = -1
         this.prevposition = new Position(this.position)
         
@@ -108,8 +111,30 @@ class Hero extends Entity {
     isAttacked() {
         this.health -= 1
         if(this.health <= 0) {
-            console.log("You died!")
-            window.location = window.location
+            game.splice(game.indexOf(this), 1)
+            window.setTimeout(() => {
+                if(this.score != 0) {
+                    window.name = window.prompt(
+                        "You died! Submit your score:",
+                        window.name || "Bob"
+                    ) || new String()
+                    window.name = window.name.trim()
+                    if(window.name != new String()) {
+                        try {
+                            _game.scores.add({
+                                name: window.name,
+                                score: this.score
+                            })
+                        } catch(error) {
+                            console.log(error)
+                        }
+                    }
+                }
+                window.alert("Top scores:\n" + _game.scores.get().map((entry) => {
+                    return entry.name + ": " + entry.score
+                }).join("\n"))
+                _game.reset()
+            }, 100)
         }
     }
 }
@@ -145,7 +170,6 @@ class Monster extends Entity {
                 }
             }
         }
-        console.log(protomonster.position)
         super(protomonster)
         this.isPrepared = Math.random() < 0.5
     }
@@ -196,34 +220,71 @@ class Monster extends Entity {
         if(this.health <= 0) {
             game.splice(game.indexOf(this), 1)
             game.push(new Monster())
+            hero.score += 1
         }
     }
 }
 
-window.game = [
-    new Hero(),
-    new Monster(),
-    new Monster(),
-    new Monster(),
-    new Monster(),
-]
+class Leaderboard {
+    constructor(firebaseURL) {
+        this.firebase = new Firebase(firebaseURL)
+        this.firebase.orderByChild("score").limitToLast(5).on("value", (value) => {
+            this.scores = value.val()
+        })
+    }
+    add(data) {
+        this.firebase.push(data).setPriority(data.score)
+    }
+    get() {
+        return Object.keys(this.scores).map((key) => {
+            return this.scores[key]
+        }).reverse()
+    }
+}
+
+var _game = new Object()
+_game.scores = new Leaderboard("https://yeahgoodenough.firebaseio.com/fracture")
+_game.reset = function() {
+    window.game = [
+        new Hero(),
+        new Monster(),
+        new Monster(),
+        new Monster(),
+        new Monster(),
+    ]
+}
+
+window.name = "Bob"
+window.splashed = false
+if(STAGE == "DEVELOPMENT") {
+    window.splashed = true
+}
+_game.reset()
 
 class GameComponent extends React.Component {
     render() {
-        return (
-            <div id="frame">
-                {game.map((entity) => {
-                    if(entity instanceof Entity) {
-                        return (
-                            <EntityComponent
-                                key={entity.id}
-                                entity={entity}/>
-                        )
-                    }
-                })}
-                <MenuComponent hero={hero}/>
-            </div>
-        )
+        if(splashed) {
+            return (
+                <div id="frame">
+                    {game.map((entity) => {
+                        if(entity instanceof Entity) {
+                            return (
+                                <EntityComponent
+                                    key={entity.id}
+                                    entity={entity}/>
+                            )
+                        }
+                    })}
+                    <MenuComponent hero={hero}/>
+                </div>
+            )
+        } else {
+            return (
+                <div id="frame">
+                    <div id="splash"/>
+                </div>
+            )
+        }
     }
     componentDidMount() {
         var loop = new Loop((tick) => {
@@ -259,6 +320,8 @@ class MenuComponent extends React.Component {
         return (
             <div id="menu">
                 {this.renderHearts()}
+                {this.renderScore()}
+                {this.renderMessage()}
             </div>
         )
     }
@@ -267,7 +330,29 @@ class MenuComponent extends React.Component {
         for(var i = 0; i < this.props.hero.health; i++) {
             hearts.push(<span key={i}>#</span>)
         }
-        return hearts
+        return (
+            <div id="hearts">
+                {hearts}
+            </div>
+        )
+    }
+    renderScore() {
+        return (
+            <div id="score">
+                <span>
+                    {hero.score}
+                </span>
+            </div>
+        )
+    }
+    renderMessage() {
+        return (
+            <div id="message">
+                <span>
+                    {hero.message || MESSAGE}
+                </span>
+            </div>
+        )
     }
 }
 
